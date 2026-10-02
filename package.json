@@ -1,0 +1,12 @@
+{
+  "name": "national-material-master",
+  "version": "0.9.0",
+  "description": "One Nation, One Material Code: frontend prototype of the National Unified Material Master Framework",
+  "private": true,
+  "scripts": {
+    "start": "npx serve .",
+    "test": "node test/pipeline.test.js"
+  },
+  "author": "Yashas S",
+  "license": "MIT"
+}
