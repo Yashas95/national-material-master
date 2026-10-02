@@ -4,7 +4,7 @@
 
 Every CPSE keeps its own ERP and legacy material codes. The platform recognises when records from different CPSEs describe the same physical material, proposes one permanent national code for it, and lets a human expert approve it with full evidence and an audit trail.
 
-![Dashboard](docs/dashboard.png)
+![Dashboard](dashboard.png)
 
 ## What it does
 
@@ -17,7 +17,9 @@ Every CPSE keeps its own ERP and legacy material codes. The platform recognises 
 - **Governance:** append-only audit log, recommendation records, role-based access and tenant isolation.
 - **3D visualisation** in Three.js: a constellation where records converge into national materials, and procedural 3D models generated from extracted attributes.
 
-![Match review](docs/match-review.png)
+![Match review](match-review.png)
+
+![Procurement opportunities](procurement.png)
 
 ## Example
 
