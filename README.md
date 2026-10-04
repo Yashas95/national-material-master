@@ -4,7 +4,7 @@
 
 Every CPSE keeps its own ERP and legacy material codes. The platform recognises when records from different CPSEs describe the same physical material, proposes one permanent national code for it, and lets a human expert approve it with full evidence and an audit trail.
 
-![Dashboard](dashboard.png)
+![Dashboard](docs/dashboard.png)
 
 ## What it does
 
@@ -17,9 +17,9 @@ Every CPSE keeps its own ERP and legacy material codes. The platform recognises 
 - **Governance:** append-only audit log, recommendation records, role-based access and tenant isolation.
 - **3D visualisation** in Three.js: a constellation where records converge into national materials, and procedural 3D models generated from extracted attributes.
 
-![Match review](match-review.png)
+![Match review](docs/match-review.png)
 
-![Procurement opportunities](procurement.png)
+![Procurement opportunities](docs/procurement.png)
 
 ## Example
 
@@ -65,13 +65,14 @@ Try switching roles in the top bar. A CPSE administrator only sees their own CPS
 ## Project structure
 
 ```
-index.html          App shell
-css/styles.css      Design tokens, layout, components
-js/pipeline.js      Synthetic data, normalization, extraction, matching, clustering, evaluation
-js/scenes.js        Three.js constellation and material model viewer
-js/app.js           State, routing, screens, review workflow, audit
-test/               Pipeline tests (Node)
-docs/               Screenshots
+index.html                     App shell
+css/styles.css                 Design tokens, layout, components
+js/pipeline.js                 Synthetic data, normalization, extraction, matching, clustering, evaluation
+js/scenes.js                   Three.js constellation and material model viewer
+js/app.js                      State, routing, screens, review workflow, audit
+test/pipeline.test.js          Pipeline tests (Node)
+docs/                          Screenshots and documentation assets
+dist/                          Standalone distribution (single-file bundle & archive)
 ```
 
 ## Evaluation
