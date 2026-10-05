@@ -1,5 +1,3 @@
-/* National Unified Material Master: client-side intelligence pipeline.
-   All data generated here is SYNTHETIC. No real CPSE or procurement data. */
 (function (root) {
 'use strict';
 
@@ -16,11 +14,11 @@ function rng(seed) {
 function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
 const CPSES = [
-  { id: 'A', short: 'PETRO', name: 'Synthetic Petroleum Ltd', sector: 'Oil & Gas', erp: 'SAP ECC export', format: 'CSV', color: '#5B8DEF' },
-  { id: 'B', short: 'POWER', name: 'Synthetic Power Corporation', sector: 'Power', erp: 'SAP S/4HANA export', format: 'Excel', color: '#2FB3A3' },
-  { id: 'C', short: 'STEEL', name: 'Synthetic Steel Ltd', sector: 'Steel', erp: 'Oracle EBS export', format: 'JSON', color: '#A77BE0' },
-  { id: 'D', short: 'MINES', name: 'Synthetic Mining Company', sector: 'Mining', erp: 'In-house ERP', format: 'XML', color: '#86B03C' },
-  { id: 'E', short: 'HVENG', name: 'Synthetic Heavy Engineering Ltd', sector: 'Heavy Engineering', erp: 'SAP ECC export', format: 'CSV', color: '#E07798' },
+  { id: 'A', short: 'PETRO', name: 'National Petroleum Corporation', sector: 'Oil & Gas', erp: 'SAP ECC export', format: 'CSV', color: '#5B8DEF' },
+  { id: 'B', short: 'POWER', name: 'National Power Grid Corporation', sector: 'Power', erp: 'SAP S/4HANA export', format: 'Excel', color: '#2FB3A3' },
+  { id: 'C', short: 'STEEL', name: 'National Steel Corporation', sector: 'Steel', erp: 'Oracle EBS export', format: 'JSON', color: '#A77BE0' },
+  { id: 'D', short: 'MINES', name: 'National Mining & Minerals Ltd', sector: 'Mining', erp: 'In-house ERP', format: 'XML', color: '#86B03C' },
+  { id: 'E', short: 'HVENG', name: 'Heavy Engineering Corporation Ltd', sector: 'Heavy Engineering', erp: 'SAP ECC export', format: 'CSV', color: '#E07798' },
 ];
 const CPSE_BY_ID = Object.fromEntries(CPSES.map(c => [c.id, c]));
 
@@ -66,7 +64,6 @@ function canonUnit(u) {
   return { raw: k, family: e[0], factor: e[1], canon: FAMILY_CANON[e[0]] };
 }
 
-/* Domain knowledge: the rules the matching engine applies deterministically. */
 const DOMAIN_RULES = [
   { id: 'R-01', name: 'Critical attribute conflict blocks merge', detail: 'If two records share a category but differ on any critical attribute (grade, size, length, rating, voltage, class, schedule), they are never merged, whatever the text similarity or procurement signal.' },
   { id: 'R-02', name: 'Motor rating equivalence', detail: 'Standard motor ratings are equivalent across units: 5 HP = 3.7 kW, 10 HP = 7.5 kW, 20 HP = 15 kW, 50 HP = 37 kW.' },
@@ -411,7 +408,6 @@ function band(score, th) {
   return 'NO_MATCH';
 }
 
-/* Human-readable, evidence-backed explanation (template generator over computed features). */
 function explain(p, r1, r2) {
   const crit = CATEGORIES[r1.category].critical;
   const reasons = [], differences = [], blocked = [];
@@ -451,18 +447,17 @@ function explain(p, r1, r2) {
   return { reasons, differences, blocked, narrative };
 }
 
-/* ---------------- Synthetic data generation ---------------- */
 const SUPPLIERS = {
-  HEX_BOLT: ['Deccan Fasteners (syn)', 'Konkan Industrial Supply (syn)', 'Vindhya Bolts & Nuts (syn)'],
-  BALL_BEARING: ['Narmada Bearings (syn)', 'Kaveri Bearing Co (syn)', 'Konkan Industrial Supply (syn)'],
-  GATE_VALVE: ['Godavari Valves (syn)', 'Sahyadri Flow Control (syn)', 'Konkan Industrial Supply (syn)'],
-  FLANGE: ['Tapi Forgings (syn)', 'Godavari Valves (syn)', 'Vindhya Bolts & Nuts (syn)'],
-  INDUCTION_MOTOR: ['Satpura Motors (syn)', 'Nilgiri Electricals (syn)'],
-  SEAMLESS_PIPE: ['Tapi Pipes & Tubes (syn)', 'Mahanadi Steel Traders (syn)'],
-  SPIRAL_WOUND_GASKET: ['Sahyadri Sealing (syn)', 'Konkan Industrial Supply (syn)'],
-  POWER_CABLE: ['Ganga Cables (syn)', 'Nilgiri Electricals (syn)'],
-  WELDING_ELECTRODE: ['Mahanadi Welding (syn)', 'Konkan Industrial Supply (syn)'],
-  UNCLASSIFIED: ['Local vendor (syn)'],
+  HEX_BOLT: ['Deccan Fasteners Ltd', 'Konkan Industrial Supply Co', 'Vindhya Bolts & Nuts Pvt Ltd'],
+  BALL_BEARING: ['Narmada Bearings Ltd', 'Kaveri Bearing Co', 'Konkan Industrial Supply Co'],
+  GATE_VALVE: ['Godavari Valves Ltd', 'Sahyadri Flow Control', 'Konkan Industrial Supply Co'],
+  FLANGE: ['Tapi Forgings Ltd', 'Godavari Valves Ltd', 'Vindhya Bolts & Nuts Pvt Ltd'],
+  INDUCTION_MOTOR: ['Satpura Motors Ltd', 'Nilgiri Electricals Ltd'],
+  SEAMLESS_PIPE: ['Tapi Pipes & Tubes Ltd', 'Mahanadi Steel Traders'],
+  SPIRAL_WOUND_GASKET: ['Sahyadri Sealing Products', 'Konkan Industrial Supply Co'],
+  POWER_CABLE: ['Ganga Cables Ltd', 'Nilgiri Electricals Ltd'],
+  WELDING_ELECTRODE: ['Mahanadi Welding Solutions', 'Konkan Industrial Supply Co'],
+  UNCLASSIFIED: ['National Industrial Supplies'],
 };
 const UNITS_BY_STYLE = { count: ['EA', 'NOS', 'PCS', 'NO', 'EA'], length: ['M', 'MTR', 'M', 'RM', 'KM'], mass: ['KG', 'KG', 'KG', 'PKT', 'KGS'] };
 const CAT_FAMILY = { HEX_BOLT: 'count', BALL_BEARING: 'count', GATE_VALVE: 'count', FLANGE: 'count', INDUCTION_MOTOR: 'count', SPIRAL_WOUND_GASKET: 'count', SEAMLESS_PIPE: 'length', POWER_CABLE: 'length', WELDING_ELECTRODE: 'mass' };
@@ -625,7 +620,7 @@ function generate(seed) {
     if (item) for (const [k, v] of Object.entries(item.a)) if (k[0] !== '_') truthAttrs[k] = v;
     records.push({
       id: 'r' + (records.length + 1), cpse: CPSES[ci].id, code, desc, unit, plant: `${CPSES[ci].short}-PL${ri(1, 3)}`,
-      history, truth: item ? item.id : 'N' + records.length, truthCat: cat, truthAttrs, omitted: opts.omitted || [], source: 'Synthetic seed dataset', ingestedAt: '2026-09-02T09:30:00Z',
+      history, truth: item ? item.id : 'N' + records.length, truthCat: cat, truthAttrs, omitted: opts.omitted || [], source: 'Baseline catalog dataset', ingestedAt: '2026-09-02T09:30:00Z',
     });
   };
 
@@ -636,13 +631,13 @@ function generate(seed) {
       pushRec(1, item, 'HEXAGONAL HEAD BOLT M16 x 50 STAINLESS STEEL 304', { code: 'MAT-98231' });
       pushRec(2, item, 'SS304 HEX HEAD BOLT M16 50MM', { code: '772819' });
       pushRec(3, item, 'BOLT HEX HEAD M16*50 SS 304', { code: 'FM-22109' });
-      pushRec(4, item, 'BOLT,HEX,M16,S.S.304', { code: 'HE/BLT/04412', omitted: ['length'], history: [{ year: 2025, qty: 1200, price: 29.1, supplier: 'Deccan Fasteners (syn)' }, { year: 2026, qty: 900, price: 29.6, supplier: 'Vindhya Bolts & Nuts (syn)' }] });
+      pushRec(4, item, 'BOLT,HEX,M16,S.S.304', { code: 'HE/BLT/04412', omitted: ['length'], history: [{ year: 2025, qty: 1200, price: 29.1, supplier: 'Deccan Fasteners Ltd' }, { year: 2026, qty: 900, price: 29.6, supplier: 'Vindhya Bolts & Nuts Pvt Ltd' }] });
       continue;
     }
     if (key === DEMO_BEARING_KEY) {
-      pushRec(0, item, 'BRG 6205 2RS', { history: [{ year: 2025, qty: 500, price: 1200, supplier: 'Narmada Bearings (syn)' }] });
-      pushRec(1, item, 'BALL BEARING 6205-2RS1 MAKE KAVERI', { history: [{ year: 2025, qty: 800, price: 1350, supplier: 'Kaveri Bearing Co (syn)' }] });
-      pushRec(2, item, 'DEEP GROOVE BALL BEARING 6205 2RS', { history: [{ year: 2026, qty: 700, price: 1180, supplier: 'Narmada Bearings (syn)' }] });
+      pushRec(0, item, 'BRG 6205 2RS', { history: [{ year: 2025, qty: 500, price: 1200, supplier: 'Narmada Bearings Ltd' }] });
+      pushRec(1, item, 'BALL BEARING 6205-2RS1 MAKE KAVERI', { history: [{ year: 2025, qty: 800, price: 1350, supplier: 'Kaveri Bearing Co' }] });
+      pushRec(2, item, 'DEEP GROOVE BALL BEARING 6205 2RS', { history: [{ year: 2026, qty: 700, price: 1180, supplier: 'Narmada Bearings Ltd' }] });
       continue;
     }
     const roll = R();
@@ -663,10 +658,10 @@ function generate(seed) {
       }
     }
   }
-  // Noise: unclassifiable descriptions
+
   [[2, 'SPARES FOR PUMP AS PER DRG NO 1123'], [3, 'MISC CONSUMABLES'], [1, 'ITEM AS PER SAMPLE'], [0, 'GREASE EP2 18KG BUCKET'], [4, 'FILTER ELEMENT HYD'], [3, 'SPARE KIT FOR CONVEYOR']]
     .forEach(([ci, d]) => pushRec(ci, null, d));
-  // Data-quality defects
+
   const pickRec = (pred) => records.filter(pred);
   const bolts = pickRec(r => r.truthCat === 'HEX_BOLT' && r.cpse === 'C' && !r.omitted.length && r.code !== '772819');
   if (bolts[3]) bolts[3].unit = 'NUM';
@@ -759,7 +754,7 @@ function run(rawRecords, config) {
     return Object.assign({}, r, { norm, category, attrs, missing, unitInfo, complete, fpKey, quality: [], material: materialOf(category, attrs) });
   });
   const byId = new Map(records.map(r => [r.id, r]));
-  // quality checks
+
   const codeCount = new Map();
   for (const r of records) { const k = r.cpse + '|' + r.code; codeCount.set(k, (codeCount.get(k) || 0) + 1); }
   for (const r of records) {
@@ -769,7 +764,7 @@ function run(rawRecords, config) {
     if (codeCount.get(r.cpse + '|' + r.code) > 1) r.quality.push({ type: 'DUP_CODE', msg: `Legacy code ${r.code} is used by more than one record in this CPSE.` });
   }
   buildVectors(records);
-  // blocking + candidate generation
+
   const pairs = []; const pairIndex = new Map();
   const cats = new Map();
   for (const r of records) { if (r.category === 'UNCLASSIFIED') continue; if (!cats.has(r.category)) cats.set(r.category, []); cats.get(r.category).push(r); }
@@ -789,7 +784,7 @@ function run(rawRecords, config) {
     for (const s of star) for (const r of list) doPair(s, r);
   }
   const pairOf = (a, b) => { const k = a < b ? a + '|' + b : b + '|' + a; const i = pairIndex.get(k); return i === undefined ? null : pairs[i]; };
-  // clustering: complete records grouped by fingerprint (critical-attribute identity, rule R-01)
+
   const cmap = new Map();
   for (const r of records) if (r.complete) { if (!cmap.has(r.fpKey)) cmap.set(r.fpKey, []); cmap.get(r.fpKey).push(r); }
   const clusters = [];
@@ -828,7 +823,7 @@ function run(rawRecords, config) {
     const seenC = new Set();
     for (const id of c.members) { const r = byId.get(id); if (seenC.has(r.cpse)) r.quality.push({ type: 'INTRA_DUP', msg: 'Another record in the same CPSE describes the same material (internal duplicate).' }); seenC.add(r.cpse); }
   }
-  // attach suggestions for incomplete records
+
   const attachments = [];
   for (const r of records) {
     if (r.complete || r.category === 'UNCLASSIFIED') continue;
@@ -851,7 +846,7 @@ function run(rawRecords, config) {
       attachments.push(a); c.attachments.push(r.id); r.suggestedCluster = c.key;
     }
   }
-  // price outliers + unit issues at cluster level
+
   for (const c of clusters) {
     const ps = c.members.map(id => ({ id, p: avgUnitPrice(byId.get(id)) })).filter(x => x.p);
     if (ps.length >= 3) {
@@ -860,9 +855,9 @@ function run(rawRecords, config) {
     }
     if (c.unitIssue) for (const id of c.members) { const r = byId.get(id); if (r.unitInfo && r.unitInfo.family === 'pack') r.quality.push({ type: 'UNIT_MISMATCH', msg: 'Unit PKT cannot be converted to the cluster unit without a pack size.' }); }
   }
-  // blocked merges
+
   const variants = pairs.filter(p => p.cls === 'VARIANT').sort((x, y) => y.score - x.score);
-  // procurement
+
   const procurement = [];
   for (const c of clusters) {
     if (c.cpses.length < 2) continue;
@@ -894,7 +889,7 @@ function run(rawRecords, config) {
     p.outlier = p.spread > 1.5;
   }
   procurement.sort((a, b) => (b.clusterKey === DEMO_BEARING_KEY) - (a.clusterKey === DEMO_BEARING_KEY) || b.score - a.score);
-  // evaluation against synthetic ground truth
+
   const ev = evaluate(records, clusters, variants, byId);
   const N = records.length;
   const stats = {
