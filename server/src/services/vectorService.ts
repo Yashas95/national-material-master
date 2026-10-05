@@ -85,7 +85,7 @@ export class VectorService {
     const vectorStr = this.toVectorString(embedding);
 
     try {
-      const results = await prisma.$queryRawUnsafe<LegacyRecordVectorResult[]>(
+      const results = (await (prisma as any).$queryRawUnsafe(
         `
         SELECT 
           id, 
@@ -107,7 +107,7 @@ export class VectorService {
         category ?? null,
         minSimilarity,
         limit
-      );
+      )) as LegacyRecordVectorResult[];
 
       return results;
     } catch (error) {
@@ -124,7 +124,7 @@ export class VectorService {
     const vectorStr = this.toVectorString(embedding);
 
     try {
-      const results = await prisma.$queryRawUnsafe<NationalMaterialVectorResult[]>(
+      const results = (await (prisma as any).$queryRawUnsafe(
         `
         SELECT 
           id, 
@@ -145,7 +145,7 @@ export class VectorService {
         category ?? null,
         minSimilarity,
         limit
-      );
+      )) as NationalMaterialVectorResult[];
 
       return results;
     } catch (error) {

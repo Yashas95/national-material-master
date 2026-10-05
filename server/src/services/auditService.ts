@@ -170,7 +170,7 @@ export class AuditService {
           page,
           limit,
           totalPages: Math.max(1, Math.ceil(total / limit)),
-          data: records.map(r => ({
+          data: records.map((r: any) => ({
             id: r.id,
             action: r.action,
             target: r.target,

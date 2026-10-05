@@ -12,8 +12,9 @@ WORKDIR /app
 # Install build dependencies if needed
 RUN apk add --no-cache libc6-compat
 
-# Copy package descriptors
+# Copy package descriptors and prisma schema
 COPY package*.json ./
+COPY prisma ./prisma/
 
 # Install all dependencies (including dev for building)
 RUN npm ci
@@ -40,6 +41,8 @@ WORKDIR /app
 
 COPY . .
 
+RUN npx prisma generate
+
 RUN npm run build
 
 # Prune dev dependencies for lean production container
@@ -61,6 +64,7 @@ USER node
 COPY --chown=node:node package*.json ./
 COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/dist ./dist
+COPY --chown=node:node --from=builder /app/prisma ./prisma
 
 EXPOSE 4000
 
