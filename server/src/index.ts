@@ -4,9 +4,9 @@ import { connectDatabase, disconnectDatabase } from './config/db';
 
 const app = createApp();
 
-const server = app.listen(config.server.port, async () => {
+const server = app.listen(config.server.port, '0.0.0.0', async () => {
   console.log(`[NUMMF Server] Running in ${config.server.env} mode on port ${config.server.port}`);
-  console.log(`[Health Endpoint] http://localhost:${config.server.port}${config.server.apiPrefix}/health`);
+  console.log(`[Health Endpoint] http://0.0.0.0:${config.server.port}${config.server.apiPrefix}/health`);
   console.log(`[Tenant Isolation] ${config.features.tenantIsolation ? 'Enabled' : 'Disabled'}`);
 
   await connectDatabase();

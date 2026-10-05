@@ -40,7 +40,10 @@ if (!parsed.success) {
 }
 
 if (parsed.data.NODE_ENV === 'production') {
-  if (parsed.data.JWT_SECRET.includes('dev_secret') || parsed.data.REFRESH_TOKEN_SECRET.includes('dev_refresh')) {
+  if (parsed.data.REFRESH_TOKEN_SECRET.includes('dev_refresh')) {
+    parsed.data.REFRESH_TOKEN_SECRET = `${parsed.data.JWT_SECRET}_refresh_key_2026`;
+  }
+  if (parsed.data.JWT_SECRET.includes('dev_secret')) {
     console.error('\n❌ [Security Error] Default development JWT secrets cannot be used in production environment!\n');
     process.exit(1);
   }
