@@ -56,6 +56,12 @@ p{margin:0}
 .top .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--faint)}
 .top .spacer{flex:1}
 .synthetic{font-size:11.5px;color:var(--warn);background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);padding:3px 8px;border-radius:var(--r-s);white-space:nowrap}
+.live-badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;padding:3px 9px;border-radius:var(--r-s);white-space:nowrap;cursor:default}
+.live-badge.connected{color:#0e6251;background:rgba(47,179,163,0.14);border:1px solid rgba(47,179,163,0.4)}
+.live-badge.offline{color:#8a5500;background:rgba(242,169,59,0.14);border:1px solid rgba(242,169,59,0.4)}
+.live-badge .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.live-badge.connected .dot{background:#2FB3A3;box-shadow:0 0 6px rgba(47,179,163,0.8)}
+.live-badge.offline .dot{background:#F2A93B;box-shadow:0 0 6px rgba(242,169,59,0.8)}
 .who{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
 .who select{padding:5px 8px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--surface)}
 .content{padding:22px 24px 80px;max-width:1440px;width:100%}

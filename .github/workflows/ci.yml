@@ -1,0 +1,132 @@
+name: NUMMF Enterprise CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # 1. Ground Truth Pipeline & Precision Benchmarks
+  # ============================================================================
+  test-ground-truth-pipeline:
+    name: Ground Truth Precision & Hallucination Prevention Benchmarks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: 'package.json'
+
+      - name: Run Root Pipeline Tests (Ground Truth Precision)
+        run: npm test
+
+      - name: Run Rule R-01 Adversarial & Latency Benchmarks (100.0% Precision Guarantee)
+        run: npm run benchmark
+
+  # ============================================================================
+  # 2. Server Enterprise Tests, Type Checking & Health Monitoring
+  # ============================================================================
+  test-and-build-server:
+    name: Backend Services, Key Rotation & Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: nummf_user
+          POSTGRES_PASSWORD: nummf_pass
+          POSTGRES_DB: nummf_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+          cache-dependency-path: 'server/package.json'
+
+      - name: Install Server Dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Generate Prisma ORM Client
+        working-directory: server
+        env:
+          DATABASE_URL: postgresql://nummf_user:nummf_pass@localhost:5432/nummf_db
+        run: npm run db:generate
+
+      - name: TypeScript Compile Build Check (Strict Zero-Error Budget)
+        working-directory: server
+        run: npm run build
+
+      - name: Run Automated Server Test Suite (135+ Integration Tests)
+        working-directory: server
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://nummf_user:nummf_pass@localhost:5432/nummf_db
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: nummf_ci_test_secret_key_at_least_16_chars_long
+          REFRESH_TOKEN_SECRET: nummf_ci_test_refresh_secret_key_at_least_16_chars
+          GEMINI_API_KEY: ''
+        run: npm test
+
+      - name: Run Gemini Key Pool & Health Diagnostic Check
+        working-directory: server
+        run: npm run keys:health
+
+  # ============================================================================
+  # 3. Production Container Build & Configuration Validation
+  # ============================================================================
+  docker-validation:
+    name: Production Multi-Stage Container Build & Compose Validation
+    runs-on: ubuntu-latest
+    needs: [test-ground-truth-pipeline, test-and-build-server]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose Configuration Syntax
+        run: docker compose -f docker-compose.yml config
+
+      - name: Validate Production Docker Compose Configuration Syntax
+        run: docker compose -f docker-compose.prod.yml config
+
+      - name: Build Production Server Docker Image
+        run: docker build --target production -t nummf-backend:production ./server

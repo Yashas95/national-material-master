@@ -1,0 +1,93 @@
+# ==============================================================================
+# Docker Compose for National Unified Material Master Framework (NUMMF)
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL with pgvector extension
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: nummf-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nummf_user
+      POSTGRES_PASSWORD: nummf_pass
+      POSTGRES_DB: nummf_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nummf_user -d nummf_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nummf-network
+
+  # ----------------------------------------------------------------------------
+  # Redis 7 (In-memory cache & BullMQ background queue broker)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: nummf-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nummf-network
+
+  # ----------------------------------------------------------------------------
+  # Backend API Server (TypeScript Express + Hot Reload)
+  # ----------------------------------------------------------------------------
+  api:
+    build:
+      context: ./server
+      target: development
+    container_name: nummf-api
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      NODE_ENV: development
+      DATABASE_URL: postgresql://nummf_user:nummf_pass@postgres:5432/nummf_db
+      REDIS_URL: redis://redis:6379
+      CLIENT_URL: http://localhost:3000
+      JWT_SECRET: nummf_dev_secret_key_at_least_16_chars_long
+      ENABLE_TENANT_ISOLATION: "true"
+      ENABLE_AUTO_MATCHING: "true"
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nummf-network
+
+# ------------------------------------------------------------------------------
+# Persistent Volumes & Network Definitions
+# ------------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    name: nummf_postgres_data
+  redis_data:
+    name: nummf_redis_data
+
+networks:
+  nummf-network:
+    name: nummf-network
+    driver: bridge

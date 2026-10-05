@@ -1,0 +1,57 @@
+{
+  "name": "national-material-master-server",
+  "version": "1.0.0",
+  "description": "Backend API and intelligence services for the National Unified Material Master Framework",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "prisma generate && rimraf dist && tsc",
+    "start": "node dist/index.js",
+    "docker:up": "docker compose up -d postgres redis",
+    "docker:up:all": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:reset": "docker compose down -v",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx src/seeds/seed.ts",
+    "test": "tsx --test src/**/*.test.ts",
+    "keys:health": "tsx src/scripts/keyHealthCheck.ts",
+    "lint": "eslint src --ext .ts"
+  },
+  "keywords": [
+    "material-master",
+    "cpse",
+    "procurement",
+    "harmonization",
+    "matching-engine"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^2.27.0",
+    "@prisma/client": "^6.19.3",
+    "bullmq": "^6.3.11",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "helmet": "^8.0.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.4.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^20.14.9",
+    "prisma": "^6.19.3",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.1",
+    "typescript": "^5.5.4"
+  }
+}

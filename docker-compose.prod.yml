@@ -1,0 +1,121 @@
+# ==============================================================================
+# Production Docker Compose for National Unified Material Master Framework
+# Unified single-port deployment with Nginx reverse proxy & automated health checks
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. PostgreSQL 16 with pgvector Extension
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: nummf-prod-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nummf_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nummf_prod_secure_password_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-nummf_db}
+    volumes:
+      - nummf_prod_postgres_data:/var/lib/postgresql/data
+      - ./server/docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nummf_user} -d ${POSTGRES_DB:-nummf_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nummf-prod-network
+
+  # ----------------------------------------------------------------------------
+  # 2. Redis 7 (Cache & BullMQ Distributed Background Job Broker)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: nummf-prod-redis
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - nummf_prod_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nummf-prod-network
+
+  # ----------------------------------------------------------------------------
+  # 3. Production Node.js Backend API Container
+  # ----------------------------------------------------------------------------
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: production
+    container_name: nummf-prod-api
+    restart: always
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nummf_user}:${POSTGRES_PASSWORD:-nummf_prod_secure_password_2026}@postgres:5432/${POSTGRES_DB:-nummf_db}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-nummf_prod_jwt_secret_key_32_characters_minimum}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-nummf_prod_refresh_secret_key_32_characters_min}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_API_KEYS: ${GEMINI_API_KEYS:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-text-embedding-004}
+      ENABLE_TENANT_ISOLATION: "true"
+      ENABLE_AUTO_MATCHING: "true"
+      MAX_FILE_UPLOAD_MB: "50"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:4000/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - nummf-prod-network
+
+  # ----------------------------------------------------------------------------
+  # 4. Nginx Reverse Proxy (Unified Port 80 Single-Port Ingress)
+  # ----------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: nummf-prod-nginx
+    restart: always
+    ports:
+      - "${PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./js:/usr/share/nginx/html/js:ro
+      - ./css:/usr/share/nginx/html/css:ro
+      - ./dist:/usr/share/nginx/html/dist:ro
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - nummf-prod-network
+
+# ------------------------------------------------------------------------------
+# Persistent Volume & Network Specifications
+# ------------------------------------------------------------------------------
+volumes:
+  nummf_prod_postgres_data:
+    name: nummf_prod_postgres_data
+  nummf_prod_redis_data:
+    name: nummf_prod_redis_data
+
+networks:
+  nummf-prod-network:
+    name: nummf-prod-network
+    driver: bridge

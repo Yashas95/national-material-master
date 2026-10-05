@@ -1,0 +1,216 @@
+// ==============================================================================
+// National Unified Material Master Framework (NUMMF) - Prisma Schema
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------------------------
+// Central Public Sector Enterprises (Tenants)
+// ------------------------------------------------------------------------------
+model Cpse {
+  id        String   @id // 'A', 'B', 'C', 'D', 'E'
+  short     String   // e.g. 'PETRO', 'POWER', 'STEEL'
+  name      String   // e.g. 'Synthetic Petroleum Ltd'
+  sector    String   // e.g. 'Oil & Gas'
+  erp       String   // e.g. 'SAP ECC export'
+  format    String   // e.g. 'CSV', 'JSON'
+  color     String   // e.g. '#5B8DEF'
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  records LegacyRecord[]
+
+  @@map("cpses")
+}
+
+// ------------------------------------------------------------------------------
+// Legacy ERP Material Records
+// ------------------------------------------------------------------------------
+model LegacyRecord {
+  id         String   @id @default(uuid())
+  cpseId     String   @map("cpse_id")
+  code       String   // Legacy item code from source ERP (e.g. 'BOLT-10021')
+  rawDesc    String   @map("raw_desc") // Original raw unstructured text
+  normDesc   String   @map("norm_desc") // Normalized text description
+  category   String   // Engineering category (e.g. 'HEX_BOLT', 'BALL_BEARING')
+  attrs      Json     // Extracted physical attributes (JSONB)
+  unit       String?  // Raw unit of measure (e.g. 'EA', 'MTR', 'KG')
+  unitFamily String?  @map("unit_family") // 'count', 'length', 'mass', 'pack'
+  unitFactor Float?   @map("unit_factor") // Normalization factor to canonical unit
+  unitCanon  String?  @map("unit_canon") // Standard unit symbol ('EA', 'M', 'KG')
+  source     String   @default("Initial Dataset") // Dataset or upload origin
+  batchId    String?  @map("batch_id") // Ingestion batch identifier
+  status     String   @default("INGESTED") // 'INGESTED', 'MAPPED', 'PENDING_REVIEW', 'FLAGGED'
+  embedding  Unsupported("vector(384)")?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  cpse               Cpse                  @relation(fields: [cpseId], references: [id], onDelete: Cascade)
+  mapping            MaterialMapping?
+  procurementHistory ProcurementHistory[]
+
+  @@unique([cpseId, code], name: "cpse_code_unique")
+  @@index([category])
+  @@index([status])
+  @@index([cpseId])
+  @@map("legacy_records")
+}
+
+// ------------------------------------------------------------------------------
+// National Material Master (Authoritative Unified Catalog)
+// ------------------------------------------------------------------------------
+model NationalMaterial {
+  id              String    @id @default(uuid())
+  clusterKey      String    @unique @map("cluster_key") // e.g. 'HEX_BOLT|diameter=16|length=50|grade=SS304'
+  nmcCode         String    @unique @map("nmc_code") // e.g. 'NMC-00000001'
+  codeNumber      Int       @unique @map("code_number") // Integer sequence
+  category        String    // e.g. 'HEX_BOLT'
+  stdDesc         String    @map("std_desc") // Canonical unified description
+  criticalAttrs   Json      @map("critical_attrs") // Critical domain attributes (JSONB)
+  status          String    @default("PENDING") // 'PENDING', 'APPROVED', 'AWAITING_L2', 'ESCALATED', 'REJECTED'
+  version         Int       @default(1)
+  approvedBy      String?   @map("approved_by")
+  approvedAt      DateTime? @map("approved_at")
+  rejectionReason String?   @map("rejection_reason")
+  notes           String?
+  embedding       Unsupported("vector(384)")?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  mappings      MaterialMapping[]
+  versions      MaterialVersion[]
+  opportunities ProcurementOpportunity[]
+
+  @@index([category])
+  @@index([status])
+  @@map("national_materials")
+}
+
+// ------------------------------------------------------------------------------
+// Crosswalk: Legacy Record to National Material Code
+// ------------------------------------------------------------------------------
+model MaterialMapping {
+  id                 String    @id @default(uuid())
+  nationalMaterialId String    @map("national_material_id")
+  legacyRecordId     String    @unique @map("legacy_record_id")
+  confidenceScore    Float     @map("confidence_score") // 0.0 to 1.0 composite hybrid score
+  matchType          String    @map("match_type") // 'EXACT_MATCH', 'NEAR_DUPLICATE', 'FUNCTIONALLY_EQUIVALENT', 'ATTACHMENT'
+  explanation        Json?     // Evidence breakdown & narrative rationale
+  status             String    @default("PENDING") // 'PENDING', 'APPROVED', 'REJECTED'
+  reviewedBy         String?   @map("reviewed_by")
+  reviewedAt         DateTime? @map("reviewed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  nationalMaterial NationalMaterial @relation(fields: [nationalMaterialId], references: [id], onDelete: Cascade)
+  legacyRecord     LegacyRecord     @relation(fields: [legacyRecordId], references: [id], onDelete: Cascade)
+
+  @@index([nationalMaterialId])
+  @@index([status])
+  @@map("material_mappings")
+}
+
+// ------------------------------------------------------------------------------
+// Material Version History (Auditable Snapshot on Modification)
+// ------------------------------------------------------------------------------
+model MaterialVersion {
+  id                 String   @id @default(uuid())
+  nationalMaterialId String   @map("national_material_id")
+  version            Int
+  stdDesc            String   @map("std_desc")
+  attributes         Json
+  changeReason       String   @map("change_reason")
+  changedBy          String   @map("changed_by")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  nationalMaterial NationalMaterial @relation(fields: [nationalMaterialId], references: [id], onDelete: Cascade)
+
+  @@unique([nationalMaterialId, version])
+  @@map("material_versions")
+}
+
+// ------------------------------------------------------------------------------
+// Purchase Order History (Procurement Evidence)
+// ------------------------------------------------------------------------------
+model ProcurementHistory {
+  id             String    @id @default(uuid())
+  legacyRecordId String    @map("legacy_record_id")
+  poNumber       String?   @map("po_number")
+  price          Float
+  qty            Float
+  unit           String?
+  supplier       String
+  poDate         DateTime? @map("po_date")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  legacyRecord LegacyRecord @relation(fields: [legacyRecordId], references: [id], onDelete: Cascade)
+
+  @@index([legacyRecordId])
+  @@index([supplier])
+  @@map("procurement_history")
+}
+
+// ------------------------------------------------------------------------------
+// Cross-CPSE Procurement Intelligence
+// ------------------------------------------------------------------------------
+model ProcurementOpportunity {
+  id                 String   @id @default(uuid())
+  nationalMaterialId String   @map("national_material_id")
+  combinedDemand     Float    @map("combined_demand")
+  unit               String
+  priceMin           Float    @map("price_min")
+  priceMax           Float    @map("price_max")
+  priceSpreadPct     Float    @map("price_spread_pct")
+  participatingCpses Json     @map("participating_cpses") // String array of CPSE IDs
+  sharedSuppliers    Json     @map("shared_suppliers") // String array of vendor names
+  score              Float
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  nationalMaterial NationalMaterial @relation(fields: [nationalMaterialId], references: [id], onDelete: Cascade)
+
+  @@index([nationalMaterialId])
+  @@index([score])
+  @@map("procurement_opportunities")
+}
+
+// ------------------------------------------------------------------------------
+// Immutable Append-Only Audit Trail
+// ------------------------------------------------------------------------------
+model AuditLog {
+  id        String   @id // 'AUD-000001'
+  action    String   // 'DATASET_INGESTED', 'NMC_APPROVED', 'DECISION_MODIFIED', etc.
+  target    String   // 'NMC-00000001', 'CPSE A:BOLT-10021'
+  actor     String   // User name or service identifier
+  role      String   // User role ('Super administrator', 'Material expert', etc.)
+  detail    String   // Natural language summary of the action
+  extra     Json?    // Structured diff or metadata snapshot
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([action])
+  @@index([createdAt])
+  @@index([target])
+  @@map("audit_logs")
+}
+
+// ------------------------------------------------------------------------------
+// Configurable Matching Weights & Thresholds
+// ------------------------------------------------------------------------------
+model EngineConfig {
+  id         String   @id @default("active")
+  weights    Json     // semantic, attribute, specification, category, unit, procurement
+  thresholds Json     // strong, review, manual
+  rules      Json     // Domain rules configuration
+  updatedBy  String?  @map("updated_by")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("engine_configs")
+}
